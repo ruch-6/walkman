@@ -1,0 +1,1539 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WALKMAN — playlists you can pass around</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    /* red skin — default (NWZ-E394, straight off the photo) */
+    --body-hi:   #ef4a62;
+    --body-mid:  #d81e3c;
+    --body-low:  #ad152c;
+    --body-edge: #7d0d1e;
+    --btn-face:  #e23851;
+    --btn-edge:  #9b1128;
+    --etch:      #ffe2e7;
+    --sony:      #fff5f7;
+    --swirl:     #8d0f22;
+
+    --lcd-bg:    #eef1f5;
+    --lcd-fg:    #14171b;
+    --lcd-dim:   #6b7178;
+    --lcd-line:  #c3c9d1;
+    --lcd-panel: #ffffff;
+    --tb-a:      #4d7fc4;
+    --tb-b:      #234f92;
+    --sel-a:     #6d9ee0;
+    --sel-b:     #2c5ea8;
+    --sel-fg:    #ffffff;
+    --amber:     #f39200;
+
+    --stage-a: #14151a;
+    --stage-b: #2a1c22;
+  }
+
+  body[data-skin="silver"] {
+    --body-hi: #f2f3f4; --body-mid: #cfd2d5; --body-low: #a8acb0; --body-edge: #7d8185;
+    --btn-face: #dfe1e3; --btn-edge: #9aa0a4; --etch: #6d7378; --sony: #4a4f53; --swirl: #7d8388;
+    --stage-a: #17181c; --stage-b: #26282e;
+  }
+
+  body[data-skin="pink"] {
+    --body-hi: #fbdcea; --body-mid: #f0b9d4; --body-low: #dc95ba; --body-edge: #b56f96;
+    --btn-face: #f7cde1; --btn-edge: #cf90b3; --etch: #9c5f81; --sony: #8e5375; --swirl: #d05b96;
+    --stage-a: #241a20; --stage-b: #3a2a33;
+  }
+
+  body[data-skin="black"] {
+    --body-hi: #4a4d52; --body-mid: #2b2e33; --body-low: #17191d; --body-edge: #0b0c0e;
+    --btn-face: #33363b; --btn-edge: #17191c; --etch: #b9bec4; --sony: #e6e8ea; --swirl: #8f959b;
+    --lcd-bg: #08090b; --lcd-fg: #eef1f5; --lcd-dim: #8b9299; --lcd-line: #2a2e34; --lcd-panel: #121419;
+    --tb-a: #2c4f86; --tb-b: #16294a; --sel-a: #3f6cb0; --sel-b: #1b3766;
+    --stage-a: #0d0e10; --stage-b: #1c1e22;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(120% 90% at 50% 0%, var(--stage-b), var(--stage-a) 70%);
+    font-family: Verdana, Tahoma, "DejaVu Sans", sans-serif;
+    color: #dfe3e8;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 22px 12px 40px;
+    -webkit-font-smoothing: antialiased;
+    transition: background .5s ease;
+  }
+
+  .masthead { text-align: center; margin-bottom: 18px; max-width: 460px; }
+  .masthead h1 {
+    margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .42em;
+    text-transform: uppercase; color: #9aa2ab;
+  }
+  .masthead p { margin: 7px 0 0; font-size: 11.5px; line-height: 1.6; color: #6e767f; letter-spacing: .01em; }
+
+  /* ── device shell ───────────────────────────────────────── */
+  .device {
+    position: relative; width: 320px; padding: 14px 14px 22px;
+    border-radius: 16px / 18px;
+    background: linear-gradient(150deg, var(--body-hi) 0%, var(--body-mid) 44%, var(--body-low) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.85),
+      inset 0 -2px 5px rgba(0,0,0,.28),
+      0 1px 0 var(--body-edge),
+      0 26px 50px -12px rgba(0,0,0,.75),
+      0 3px 10px rgba(0,0,0,.4);
+    transition: background .5s ease;
+  }
+  .device::after { /* right-side volume rocker */
+    content: ""; position: absolute; right: -4px; top: 168px; width: 5px; height: 62px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--body-low), var(--body-mid));
+    box-shadow: 0 1px 2px rgba(0,0,0,.5);
+  }
+
+  .sony {
+    text-align: center; font-family: Arial, Helvetica, sans-serif;
+    font-weight: 800; font-size: 15px; letter-spacing: .26em;
+    color: var(--sony); text-indent: .26em;
+    text-shadow: 0 1px 0 rgba(255,255,255,.55);
+    margin-bottom: 10px;
+  }
+
+  .bezel {
+    padding: 6px; border-radius: 5px;
+    background: linear-gradient(160deg, #2a2c30, #101114);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.5);
+  }
+
+  .screen {
+    position: relative; width: 100%; height: 344px; overflow: hidden;
+    background: var(--lcd-bg); color: var(--lcd-fg);
+    display: flex; flex-direction: column;
+    font-size: 12px; line-height: 1.35;
+    transition: background .4s ease, color .4s ease;
+  }
+  .screen::after { /* LCD grain */
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 40;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.055) 0 1px, transparent 1px 3px);
+    mix-blend-mode: multiply; opacity: .5;
+  }
+  .screen.off { background: #05060a; }
+  .screen.off > * { visibility: hidden; }
+
+  .titlebar {
+    flex: 0 0 22px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, var(--tb-a), var(--tb-b));
+    color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+    text-shadow: 0 1px 1px rgba(0,0,0,.45);
+  }
+  .viewport { flex: 1; position: relative; overflow: hidden; }
+  .statusbar {
+    flex: 0 0 20px; display: flex; align-items: center; gap: 6px; padding: 0 5px;
+    border-bottom: 1px solid var(--lcd-line); background: var(--lcd-panel);
+    font-size: 10px; color: var(--lcd-dim); overflow: hidden;
+  }
+  .statusbar .np { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--lcd-fg); }
+  .statusbar .play-glyph { color: #2f9e44; font-size: 9px; }
+
+  .batt { width: 22px; height: 11px; border: 1.4px solid var(--lcd-dim); border-radius: 2px; position: relative; flex: none; }
+  .batt::after { content: ""; position: absolute; right: -3.4px; top: 3px; width: 2px; height: 5px; background: var(--lcd-dim); }
+  .batt i { position: absolute; inset: 1.6px; background: repeating-linear-gradient(115deg, var(--lcd-dim) 0 2px, transparent 2px 4px); }
+
+  /* ── home grid ──────────────────────────────────────────── */
+  .home { position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .home::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 62% at -12% 118%, rgba(96,148,214,.30), transparent 58%),
+      radial-gradient(110% 58% at 112% 112%, rgba(224,108,152,.24), transparent 62%),
+      linear-gradient(180deg, transparent 55%, rgba(255,255,255,.65) 100%);
+  }
+  .home::after {
+    content: ""; position: absolute; left: -40%; right: -40%; bottom: -74%; height: 120%;
+    border-radius: 50%; pointer-events: none;
+    border-top: 1.5px solid rgba(120,150,200,.35);
+    box-shadow: 0 -7px 0 -6px rgba(210,120,160,.3);
+  }
+  .home > * { position: relative; z-index: 1; }
+  .grid { display: grid; grid-template-columns: repeat(3, 74px); grid-auto-rows: 66px; }
+  .cell { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .cell svg { width: 34px; height: 34px; transition: transform .16s cubic-bezier(.2,1.5,.5,1); }
+  .cell .ic { fill: none; stroke: var(--lcd-dim); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .cell .icf { fill: var(--lcd-dim); }
+  .cell[aria-selected="true"] svg { transform: scale(1.42); }
+  .cell[aria-selected="true"] .ic  { stroke: var(--amber); stroke-width: 2.1; }
+  .cell[aria-selected="true"] .icf { fill: var(--amber); }
+  .home .label { font-size: 12.5px; font-weight: 700; letter-spacing: .01em; }
+
+  /* ── lists ──────────────────────────────────────────────── */
+  .list { position: absolute; inset: 0; overflow: hidden; }
+  .rows { transition: transform .13s ease-out; }
+  .row {
+    height: 43px; display: flex; align-items: center; gap: 8px; padding: 0 7px;
+    border-bottom: 1px solid var(--lcd-line); cursor: pointer;
+  }
+  .row .thumb { width: 30px; height: 30px; flex: none; object-fit: cover; background: var(--lcd-line); border-radius: 1px; }
+  .row .txt { min-width: 0; flex: 1; }
+  .row .t1 { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .t2 { font-size: 9.5px; color: var(--lcd-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row[aria-selected="true"] { background: linear-gradient(180deg, var(--sel-a), var(--sel-b)); color: var(--sel-fg); }
+  .row[aria-selected="true"] .t2 { color: rgba(255,255,255,.82); }
+  .row .num { font-size: 10px; color: var(--lcd-dim); width: 15px; text-align: right; flex: none; }
+  .row[aria-selected="true"] .num { color: rgba(255,255,255,.82); }
+  .row .chev { font-size: 10px; opacity: .55; }
+  .row.playing .t1::before { content: "▶ "; color: #2f9e44; font-size: 8px; }
+  .row[aria-selected="true"].playing .t1::before { color: #b6f2c6; }
+
+  .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 22px; text-align: center; }
+  .empty .big { font-size: 12.5px; font-weight: 700; }
+  .empty .sub { font-size: 10.5px; color: var(--lcd-dim); line-height: 1.6; }
+
+  /* ── now playing ────────────────────────────────────────── */
+  .np-view { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding: 10px 12px 8px; overflow-y: auto; }
+  .np-view.compact .art { display: none; }
+  .np-view.compact .np-meta { margin-top: 0; }
+  .art {
+    width: 168px; height: 126px; object-fit: cover; background: var(--lcd-line);
+    box-shadow: 0 3px 10px rgba(0,0,0,.35); flex: none;
+  }
+  .np-meta { width: 100%; margin-top: 11px; text-align: left; }
+  .np-meta div { display: flex; gap: 5px; align-items: baseline; }
+  .np-meta .g { flex: none; width: 11px; color: var(--lcd-dim); font-size: 9px; }
+  .np-meta .v { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np-title { font-size: 12.5px; font-weight: 700; }
+  .np-sub { font-size: 10.5px; color: var(--lcd-dim); margin-top: 3px; }
+  .bar { width: 100%; margin-top: auto; }
+  .track-line { height: 3px; background: var(--lcd-line); position: relative; }
+  .track-line i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--amber); width: 0; }
+  .times { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--lcd-dim); margin-top: 4px; }
+  .np-actions { display: flex; gap: 6px; }
+  .np-actions .lcd-btn { flex: 1; text-align: center; text-decoration: none; }
+  #yt-fb { width: 100%; height: 100%; border: 0; display: block; }
+  .np-state { font-size: 10px; color: var(--lcd-dim); letter-spacing: .12em; }
+
+  /* ── forms inside the LCD ───────────────────────────────── */
+  .form { position: absolute; inset: 0; padding: 12px; display: block; overflow-y: auto; }
+  .form > * + * { margin-top: 9px; }
+  .form .msg, .form .hint, .form label { display: block; }
+  .form .hint { font-size: 10px; color: var(--lcd-dim); line-height: 1.55; }
+  .form label { font-size: 9.5px; color: var(--lcd-dim); letter-spacing: .09em; text-transform: uppercase; }
+  .form input {
+    width: 100%; font: inherit; font-size: 11.5px; padding: 7px 8px;
+    background: var(--lcd-panel); color: var(--lcd-fg);
+    border: 1px solid var(--lcd-line); border-radius: 2px; outline: none;
+  }
+  .form input:focus { border-color: var(--sel-b); box-shadow: 0 0 0 2px rgba(80,140,220,.28); }
+  .lcd-btn {
+    font: inherit; font-size: 11px; font-weight: 700; padding: 8px 10px; cursor: pointer;
+    background: linear-gradient(180deg, var(--sel-a), var(--sel-b)); color: #fff;
+    border: none; border-radius: 2px; letter-spacing: .02em;
+  }
+  .lcd-btn.ghost { background: var(--lcd-panel); color: var(--lcd-fg); border: 1px solid var(--lcd-line); }
+  .lcd-btn:active { transform: translateY(1px); }
+  .code {
+    font-family: "Courier New", monospace; font-size: 26px; font-weight: 700; letter-spacing: .22em;
+    text-align: center; padding: 12px 6px; background: var(--lcd-panel);
+    border: 1px dashed var(--lcd-line); color: var(--amber);
+  }
+  .msg {
+    display: block; position: static; font-size: 10.5px; line-height: 1.55;
+    padding: 7px 9px; border-radius: 3px; background: var(--lcd-panel);
+    border-left: 3px solid var(--lcd-line);
+  }
+  .msg-bad { color: #ff8a5c; border-left-color: #ff8a5c; }
+  .msg-good { color: #6ee7a0; border-left-color: #6ee7a0; }
+
+  /* ── walkman logo + buttons ─────────────────────────────── */
+  .logo-row { display: flex; justify-content: center; margin: 2px 0 0; }
+  .logo-row svg { width: 44px; height: 16px; }
+  .logo-row circle { fill: var(--swirl); }
+
+  .etch-row { display: flex; justify-content: space-between; padding: 0 24px; margin: 12px 0 3px; }
+  .etch-row span {
+    font-family: Arial, Helvetica, sans-serif; font-size: 8px; font-weight: 700;
+    letter-spacing: .11em; color: var(--etch); text-shadow: 0 1px 1px rgba(0,0,0,.28);
+  }
+
+  .controls { position: relative; height: 112px; }
+  .rbtn {
+    position: absolute; width: 48px; height: 30px; border-radius: 50%;
+    background: linear-gradient(180deg, var(--btn-face), var(--body-mid));
+    border: 1px solid var(--btn-edge);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 2px 3px rgba(0,0,0,.28);
+    color: var(--etch); font-family: Arial, Helvetica, sans-serif; font-size: 9px; font-weight: 700;
+    letter-spacing: .06em; cursor: pointer; top: 6px;
+  }
+  .rbtn:active, .rbtn.hit { transform: translateY(1.5px); box-shadow: inset 0 2px 4px rgba(0,0,0,.32); }
+  .rbtn.back { left: 4px; }
+  .rbtn.option { right: 4px; }
+
+  .dpad {
+    position: absolute; left: 50%; top: 4px; transform: translateX(-50%);
+    width: 108px; height: 108px; border-radius: 50%;
+    background: linear-gradient(160deg, var(--btn-face), var(--body-low));
+    border: 1px solid var(--btn-edge);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.75), inset 0 -3px 7px rgba(0,0,0,.2), 0 3px 6px rgba(0,0,0,.3);
+  }
+  .dbtn {
+    position: absolute; background: none; border: none; cursor: pointer; padding: 0;
+    color: var(--etch); font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .dbtn i { display: block; width: 0; height: 0; }
+  .dbtn.up i    { border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 7px solid currentColor; }
+  .dbtn.down i  { border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid currentColor; }
+  .dbtn.left i  { border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-right: 7px solid currentColor; }
+  .dbtn.right i { border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid currentColor; }
+  .dbtn.up    { top: 3px; left: 50%; transform: translateX(-50%); width: 40px; height: 26px; }
+  .dbtn.down  { bottom: 3px; left: 50%; transform: translateX(-50%); width: 40px; height: 26px; }
+  .dbtn.left  { left: 3px; top: 50%; transform: translateY(-50%); width: 26px; height: 40px; }
+  .dbtn.right { right: 3px; top: 50%; transform: translateY(-50%); width: 26px; height: 40px; }
+  .dbtn.hit { color: var(--amber); }
+  .okbtn {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
+    background: linear-gradient(170deg, var(--body-hi), var(--body-mid) 60%, var(--body-low));
+    border: 1px solid var(--btn-edge);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 2px 5px rgba(0,0,0,.3);
+    color: var(--etch); font-size: 15px; display: flex; align-items: center; justify-content: center;
+  }
+  .okbtn:active, .okbtn.hit { box-shadow: inset 0 2px 6px rgba(0,0,0,.35); }
+  .jack { width: 26px; height: 8px; margin: 6px auto 0; border-radius: 0 0 4px 4px; background: var(--body-edge); opacity: .5; }
+
+  /* ── OSD + toast ────────────────────────────────────────── */
+  .osd {
+    position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+    max-width: 84%; text-align: center; line-height: 1.4;
+    background: rgba(10,12,16,.88); color: #fff; font-size: 10px; letter-spacing: .04em;
+    padding: 6px 12px; border-radius: 3px; z-index: 45; opacity: 0; transition: opacity .2s;
+    pointer-events: none;
+  }
+  .osd.show { opacity: 1; }
+
+  .legend { margin-top: 22px; max-width: 340px; text-align: center; font-size: 10.5px; line-height: 1.7; color: #6e767f; }
+  .legend b { color: #98a1aa; font-weight: 600; }
+  kbd {
+    font-family: inherit; font-size: 9.5px; background: #2b2e34; border: 1px solid #3c4046;
+    border-bottom-width: 2px; border-radius: 3px; padding: 1px 5px; color: #b6bec6;
+  }
+  #yt-host { position: absolute; z-index: 3; overflow: hidden; background: #000; }
+  #yt-host iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #yt-host.tucked { left: 1px; bottom: 1px; width: 3px; height: 3px; opacity: .02; pointer-events: none; }
+  #yt-host.onstage { left: 50%; transform: translateX(-50%); top: 52px; width: 168px; height: 126px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (max-width: 380px) {
+    .device { width: 100%; max-width: 320px; }
+    .grid { grid-template-columns: repeat(3, 70px); }
+  }
+  .serve-note {
+    margin-top: 20px; max-width: 400px; padding: 14px 16px; border-radius: 8px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,180,120,.35);
+    color: #d8d2e8; font-size: 11.5px; line-height: 1.6; text-align: left;
+  }
+  .serve-note b { display: block; color: #ffb27a; font-size: 12px; margin-bottom: 6px; }
+  .serve-note p { margin: 0 0 8px; }
+  .serve-note .then { margin: 8px 0 10px; }
+  .serve-note code {
+    display: inline-block; font-family: "Courier New", monospace; font-size: 11px;
+    background: rgba(0,0,0,.45); padding: 6px 8px; border-radius: 4px;
+    color: #eae5ff; word-break: break-all;
+  }
+  .copy-cmd {
+    font: inherit; font-size: 11px; padding: 6px 12px; border-radius: 5px; cursor: pointer;
+    background: rgba(255,255,255,.12); color: #f2eeff; border: 1px solid rgba(255,255,255,.25);
+  }
+  .copy-cmd:hover { background: rgba(255,255,255,.2); }
+
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ══ frosted skin — the translucent shell in the render ══ */
+  body[data-skin="aurora"] {
+    --etch:  rgba(255,255,255,.78);
+    --sony:  rgba(255,255,255,.92);
+    --swirl: rgba(255,255,255,.62);
+    --btn-edge: rgba(255,255,255,.4);
+    --lcd-bg:    #17132c;
+    --lcd-fg:    #f4f0ff;
+    --lcd-dim:   #a89fd6;
+    --lcd-line:  rgba(255,255,255,.16);
+    --lcd-panel: rgba(255,255,255,.09);
+    --tb-a: rgba(255,255,255,.22); --tb-b: rgba(255,255,255,.07);
+    --sel-a: rgba(150,150,252,.9); --sel-b: rgba(96,92,224,.82); --sel-fg: #fff;
+    --amber: #ffd76e;
+    background: #050508;
+    perspective: 1500px;
+  }
+
+  .orbs { position: fixed; inset: -10%; z-index: 0; pointer-events: none; overflow: hidden; }
+  .orbs i { position: absolute; border-radius: 50%; filter: blur(70px); mix-blend-mode: screen; }
+  .orbs .o1 { left: -18%; top: -12%; width: 62vmin; height: 62vmin; background: radial-gradient(circle at 35% 35%, #ff4d8d, #ff9a3c 55%, transparent 72%); opacity: .85; }
+  .orbs .o2 { left: -6%; top: 30%; width: 54vmin; height: 54vmin; background: radial-gradient(circle at 50% 50%, #7b3cff, #3d2bd6 60%, transparent 74%); opacity: .8; }
+  .orbs .o3 { right: -14%; top: 46%; width: 58vmin; height: 58vmin; background: radial-gradient(circle at 45% 45%, #ff5fd0, #a24cff 58%, transparent 74%); opacity: .78; }
+  .orbs .o4 { left: 8%; bottom: -8%; width: 40vmin; height: 40vmin; background: radial-gradient(circle at 50% 50%, #b6ff5c, #ffd23f 55%, transparent 72%); opacity: .5; }
+  body:not([data-skin="aurora"]) .orbs { display: none; }
+
+  body[data-skin="aurora"] .masthead h1 { color: rgba(255,255,255,.72); }
+  body[data-skin="aurora"] .masthead p,
+  body[data-skin="aurora"] .legend { color: rgba(214,206,255,.6); }
+  body[data-skin="aurora"] .legend b { color: rgba(238,233,255,.9); }
+  body[data-skin="aurora"] kbd { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); color: #e6e1ff; }
+
+  body[data-skin="aurora"] .device {
+    z-index: 1; border-radius: 26px; padding: 16px 15px 20px;
+    background:
+      linear-gradient(158deg, rgba(255,255,255,.46), rgba(226,220,255,.2) 46%, rgba(255,255,255,.34));
+    border: 1px solid rgba(255,255,255,.5);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    box-shadow:
+      inset 0 2px 1px rgba(255,255,255,.9),
+      inset 0 -26px 46px rgba(150,110,255,.2),
+      inset 0 0 40px rgba(255,255,255,.28),
+      0 44px 80px -22px rgba(0,0,0,.85),
+      0 0 70px rgba(170,120,255,.28);
+    transform: rotateX(6deg) rotateY(-8deg) rotate(-1.5deg);
+    transform-origin: 50% 62%;
+    transition: transform .7s cubic-bezier(.2,.85,.3,1);
+  }
+  body[data-skin="aurora"] .device:hover,
+  body[data-skin="aurora"] .device:focus-within { transform: none; }
+  body[data-skin="aurora"] .device::after {
+    background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(200,190,255,.35));
+    box-shadow: 0 1px 3px rgba(0,0,0,.35);
+  }
+  body[data-skin="aurora"] .sony { text-shadow: 0 1px 3px rgba(90,60,160,.5); }
+
+  body[data-skin="aurora"] .bezel {
+    background: linear-gradient(160deg, rgba(255,255,255,.4), rgba(120,105,190,.35));
+    border-radius: 9px; padding: 5px;
+    box-shadow: inset 0 2px 6px rgba(40,20,80,.5), 0 1px 0 rgba(255,255,255,.6);
+  }
+  body[data-skin="aurora"] .screen { border-radius: 5px; }
+  body[data-skin="aurora"] .screen::before {
+    content: ""; position: absolute; inset: -30%; z-index: 0; pointer-events: none;
+    background: conic-gradient(from 205deg at 42% 58%,
+      #ff5f6d, #ffc371, #7ee8a2, #4facfe, #b16cea, #ff5f6d);
+    filter: blur(28px); opacity: .62;
+  }
+  body[data-skin="aurora"] .screen.off::before { opacity: .06; }
+  body[data-skin="aurora"] .screen::after { opacity: .28; }
+  body[data-skin="aurora"] .titlebar,
+  body[data-skin="aurora"] .statusbar { position: relative; z-index: 2; backdrop-filter: blur(8px); }
+  body[data-skin="aurora"] .viewport { z-index: 1; background: rgba(14,10,30,.62); }
+  body[data-skin="aurora"] .titlebar { text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  body[data-skin="aurora"] .home::before { background: none; }
+  body[data-skin="aurora"] .home::after { display: none; }
+  body[data-skin="aurora"] .row { border-bottom-color: rgba(255,255,255,.12); }
+  body[data-skin="aurora"] .form input { color: #f4f0ff; }
+  body[data-skin="aurora"] .lcd-btn.ghost { color: #f4f0ff; }
+  body[data-skin="aurora"] .art, body[data-skin="aurora"] .row .thumb { border-radius: 3px; }
+
+  /* puffy periwinkle controls */
+  body[data-skin="aurora"] .rbtn {
+    width: 46px; height: 25px; border-radius: 13px; top: 14px;
+    background: linear-gradient(168deg, #b9bbfd, #7076ea 70%, #5a5fd8);
+    border: 1px solid rgba(255,255,255,.45);
+    box-shadow: inset 0 2px 2px rgba(255,255,255,.7), inset 0 -5px 9px rgba(50,40,150,.45), 0 5px 12px rgba(30,20,90,.5);
+    color: rgba(255,255,255,.9); font-size: 7.5px;
+  }
+  body[data-skin="aurora"] .rbtn.back { left: 6px; }
+  body[data-skin="aurora"] .rbtn.option { right: 6px; }
+  body[data-skin="aurora"] .dpad {
+    width: 112px; height: 104px; border-radius: 46% / 42%;
+    background: linear-gradient(168deg, rgba(190,192,255,.5), rgba(120,124,240,.42));
+    border: 1px solid rgba(255,255,255,.35);
+    box-shadow: inset 0 2px 3px rgba(255,255,255,.55), inset 0 -8px 16px rgba(60,45,160,.35), 0 8px 18px rgba(25,15,80,.45);
+  }
+  body[data-skin="aurora"] .dbtn {
+    background: linear-gradient(168deg, #c2c4ff, #7d82ef);
+    border: 1px solid rgba(255,255,255,.4);
+    box-shadow: inset 0 2px 2px rgba(255,255,255,.75), 0 3px 7px rgba(30,20,90,.45);
+    color: rgba(255,255,255,.85); font-size: 9px;
+  }
+  body[data-skin="aurora"] .dbtn.up,
+  body[data-skin="aurora"] .dbtn.down { width: 32px; height: 17px; border-radius: 50% / 60%; }
+  body[data-skin="aurora"] .dbtn.left,
+  body[data-skin="aurora"] .dbtn.right { width: 17px; height: 32px; border-radius: 60% / 50%; }
+  body[data-skin="aurora"] .dbtn i { transform: scale(.8); }
+  body[data-skin="aurora"] .dbtn.hit { color: #fff; filter: brightness(1.25); }
+  body[data-skin="aurora"] .okbtn {
+    width: 44px; height: 52px; border-radius: 50%;
+    background: linear-gradient(168deg, #cdcfff, #8288f2 65%, #6b70e6);
+    border: 1px solid rgba(255,255,255,.5);
+    box-shadow: inset 0 3px 3px rgba(255,255,255,.85), inset 0 -8px 14px rgba(50,40,150,.4), 0 8px 16px rgba(25,15,80,.5);
+    color: rgba(255,255,255,.92);
+  }
+  body[data-skin="aurora"] .okbtn svg { width: 21px; height: 11px; }
+  body[data-skin="aurora"] .jack { background: rgba(255,255,255,.35); }
+  body[data-skin="aurora"] .etch-row span { text-shadow: 0 1px 3px rgba(70,45,140,.6); }
+
+  .cable { position: relative; z-index: 0; width: 300px; max-width: 100%; height: 118px; margin-top: -6px; }
+  .cable svg { width: 100%; height: 100%; filter: drop-shadow(0 6px 14px rgba(0,0,0,.6)); }
+  body:not([data-skin="aurora"]) .cable { display: none; }
+
+  @media (max-width: 380px) {
+    body[data-skin="aurora"] .device { transform: rotateY(-4deg); }
+  }
+</style>
+
+<body data-skin="aurora">
+
+<div class="orbs" aria-hidden="true">
+  <i class="o1"></i><i class="o2"></i><i class="o3"></i><i class="o4"></i>
+</div>
+
+<div class="masthead">
+  <h1>Walkman</h1>
+  <p>Build a playlist from YouTube links, then pass the six-letter code to a friend. Their Walkman plays yours.</p>
+</div>
+
+<div class="device" id="device">
+  <div class="sony">SONY</div>
+
+  <div class="bezel">
+    <div class="screen" id="screen">
+      <div class="statusbar">
+        <span class="play-glyph" id="glyph"></span>
+        <span class="np" id="np-ticker">No music playing</span>
+        <span class="batt"><i></i></span>
+      </div>
+      <div class="titlebar" id="titlebar">Home</div>
+      <div class="viewport" id="viewport"></div>
+      <div class="osd" id="osd"></div>
+      <div id="yt-host" class="tucked"><div id="yt"></div></div>
+    </div>
+  </div>
+
+  <div class="etch-row"><span>HOME</span><span>POWER</span></div>
+
+  <div class="controls">
+    <button class="rbtn back" id="b-back" title="Back — tap and hold for Home">BACK</button>
+    <button class="rbtn option" id="b-option" title="Option menu — tap and hold to power off">OPTION</button>
+    <div class="dpad">
+      <button class="dbtn up" data-dir="up" aria-label="Up"><i></i></button>
+      <button class="dbtn down" data-dir="down" aria-label="Down"><i></i></button>
+      <button class="dbtn left" data-dir="left" aria-label="Previous"><i></i></button>
+      <button class="dbtn right" data-dir="right" aria-label="Next"><i></i></button>
+      <button class="okbtn" id="b-ok" aria-label="Select, play or pause">
+        <svg viewBox="0 0 24 12" width="27" height="14" fill="currentColor" aria-hidden="true">
+          <path d="M2 1l7.4 5L2 11z"/>
+          <rect x="14.2" y="1" width="2.7" height="10" rx="1.2"/>
+          <rect x="19" y="1" width="2.7" height="10" rx="1.2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="logo-row" aria-hidden="true">
+    <svg viewBox="0 0 92 34">
+      <path d="M2 20c6-16 13-16 19 0 5 13 11 13 16 1 4-10 10-10 14 1"
+            fill="none" stroke="var(--swirl)" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="76" cy="22" r="10"/>
+    </svg>
+  </div>
+
+  <div class="jack"></div>
+</div>
+
+<div class="cable" aria-hidden="true">
+  <svg viewBox="0 0 300 120" preserveAspectRatio="xMidYMin meet">
+    <path d="M150 6 C150 46 176 70 214 78 C252 86 278 96 296 114"
+          fill="none" stroke="rgba(226,223,255,.85)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M150 6 C150 46 176 70 214 78 C252 86 278 96 296 114"
+          fill="none" stroke="rgba(255,255,255,.55)" stroke-width="3" stroke-linecap="round"/>
+    <rect x="138" y="-6" width="24" height="26" rx="5" fill="rgba(236,234,255,.92)"/>
+  </svg>
+</div>
+
+<p class="legend">
+  <b>BACK</b> steps back, hold it for Home. <b>OPTION</b> opens the menu on any list.
+  Keyboard: <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd> <kbd>O</kbd>
+</p>
+
+<div class="serve-note" id="serve-note" hidden>
+  <b id="serve-head">To hear music, this page needs to be served over http</b>
+  <p id="serve-why"></p>
+  <code id="serve-cmd"></code>
+  <p class="then">then open <code id="serve-url"></code> in your browser.</p>
+  <button class="copy-cmd" id="copy-cmd">Copy command</button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   storage — artifact key/value store, with an in-memory fallback
+   ══════════════════════════════════════════════════════════════ */
+const mem = new Map();
+const store = {
+  async get(k, shared = false) {
+    try {
+      if (window.storage) { const r = await window.storage.get(k, shared); return r ? r.value : null; }
+    } catch (e) { /* missing key throws — treat as null */ }
+    return mem.has(k + shared) ? mem.get(k + shared) : null;
+  },
+  async set(k, v, shared = false) {
+    mem.set(k + shared, v);
+    if (!window.storage) return false;
+    try { await window.storage.set(k, v, shared); return true; }
+    catch (e) { return false; }
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════
+   state
+   ══════════════════════════════════════════════════════════════ */
+const S = {
+  skin: 'aurora',
+  screen: 'home',
+  stack: [],
+  sel: { home: 4 },
+  playlists: [],
+  curPl: null,          // playlist id being viewed
+  queue: [],            // tracks currently loaded in the player
+  qName: '',
+  qIdx: 0,
+  playing: false,
+  ready: false,
+  wantPlay: false,
+  fallback: false,
+  needsServer: false,
+  playErr: null,
+  power: true,
+  fm: 88.6,
+  note: null,           // {kind, text} shown on form screens
+  share: null,          // {code, link, name}
+  optionOpen: false,
+  optionItems: []
+};
+
+const HOME_ITEMS = [
+  { key: 'shuffle',  label: 'Shuffle All' },
+  { key: 'fm',       label: 'FM Radio' },
+  { key: 'clock',    label: 'Clock' },
+  { key: 'photos',   label: 'Cover Art' },
+  { key: 'library',  label: 'Music Library' },
+  { key: 'videos',   label: 'Videos' },
+  { key: 'settings', label: 'Settings' },
+  { key: 'newpl',    label: 'New Playlist' },
+  { key: 'import',   label: 'Get a Playlist' }
+];
+
+const TITLES = {
+  home: 'Home', library: 'Music Library', playlist: 'Playlist', now: 'Now Playing',
+  addurl: 'Add Track', newpl: 'New Playlist', share: 'Share Playlist',
+  import: 'Get a Playlist', fm: 'FM Radio', clock: 'Clock', photos: 'Cover Art',
+  videos: 'Videos', settings: 'Settings', rename: 'Rename Playlist'
+};
+
+const $ = id => document.getElementById(id);
+const viewport = $('viewport');
+
+/* ══════════════════════════════════════════════════════════════
+   helpers
+   ══════════════════════════════════════════════════════════════ */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+const mmss = s => {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60), r = Math.floor(s % 60);
+  return m + ':' + String(r).padStart(2, '0');
+};
+
+const thumb = id => 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
+
+function videoId(input) {
+  const s = String(input || '').trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:v=|\/shorts\/|youtu\.be\/|\/embed\/|\/v\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function b64(str) { return btoa(unescape(encodeURIComponent(str))).replace(/=+$/, ''); }
+function unb64(str) { try { return decodeURIComponent(escape(atob(str))); } catch (e) { return null; } }
+
+function makeCode() {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 6; i++) out += abc[Math.floor(Math.random() * abc.length)];
+  return out;
+}
+
+let osdTimer;
+function osd(text) {
+  const el = $('osd');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(osdTimer);
+  osdTimer = setTimeout(() => el.classList.remove('show'), 1300);
+}
+
+const curPlaylist = () => S.playlists.find(p => p.id === S.curPl) || null;
+const curTrack = () => S.queue[S.qIdx] || null;
+
+async function savePlaylists() { await store.set('wm:playlists', JSON.stringify(S.playlists)); }
+
+/* ══════════════════════════════════════════════════════════════
+   navigation
+   ══════════════════════════════════════════════════════════════ */
+function go(name, keepStack) {
+  if (!keepStack && S.screen !== name) S.stack.push(S.screen);
+  S.screen = name;
+  S.optionOpen = false;
+  S.note = null;
+  if (S.sel[name] == null) S.sel[name] = 0;
+  render();
+}
+
+function back() {
+  if (S.optionOpen) { S.optionOpen = false; render(); return; }
+  S.screen = S.stack.pop() || 'home';
+  S.note = null;
+  render();
+}
+
+function home() { S.stack = []; S.screen = 'home'; S.optionOpen = false; S.note = null; render(); }
+
+/* ══════════════════════════════════════════════════════════════
+   YouTube player
+   ══════════════════════════════════════════════════════════════ */
+let player = null, ytFailed = false;
+
+const YT_ERR = {
+  2:   { kind: 'preview', msg: 'The player rejected that request.' },
+  5:   { kind: 'preview', msg: 'The player could not start here.' },
+  100: { kind: 'gone',    msg: 'That video is private or has been removed.' },
+  101: { kind: 'gone',    msg: 'The owner blocked playback outside YouTube.' },
+  150: { kind: 'gone',    msg: 'The owner blocked playback outside YouTube.' },
+  153: { kind: 'preview', msg: 'The player could not start here.' }
+};
+
+const PREVIEW_MSG = 'YouTube needs this page served over http. See the note below the Walkman.';
+
+function stagePlayer() {
+  const host = $('yt-host');
+  if (!host) return;
+  const show = S.screen === 'now' && S.power && (S.fallback || (!ytFailed && !S.playErr));
+  host.classList.toggle('onstage', show);
+  host.classList.toggle('tucked', !show);
+}
+
+/* When the scripted player is blocked (sandboxed frames often are), fall back
+   to a plain YouTube embed the person can press play on directly. */
+function useFallback() {
+  if (S.fallback) return;
+  S.fallback = true;
+  S.playErr = null;
+  S.playing = false;
+  try { if (player && player.stopVideo) player.stopVideo(); } catch (e) {}
+  const yt = $('yt');
+  if (yt) yt.style.display = 'none';
+  loadCurrent();
+  if (S.screen === 'now') paintNow();
+  stagePlayer();
+}
+
+function fallbackFrame(vid) {
+  let f = $('yt-fb');
+  if (!f) {
+    f = document.createElement('iframe');
+    f.id = 'yt-fb';
+    f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    f.setAttribute('allowfullscreen', '');
+    $('yt-host').appendChild(f);
+  }
+  const next = 'https://www.youtube.com/embed/' + vid + '?playsinline=1&rel=0&autoplay=1';
+  if (f.src !== next) f.src = next;
+}
+
+window.onYouTubeIframeAPIReady = function () {
+  const vars = { playsinline: 1, rel: 0, modestbranding: 1 };
+  try { if (window.origin && window.origin !== 'null') vars.origin = window.origin; } catch (e) {}
+  player = new YT.Player('yt', {
+    height: '126', width: '168',
+    playerVars: vars,
+    events: {
+      onReady: () => {
+        S.ready = true;
+        try { player.setVolume(80); } catch (e) {}
+        if (curTrack() && S.wantPlay) loadCurrent();
+        stagePlayer();
+      },
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.ENDED) return skip(1);
+        if (e.data === YT.PlayerState.PLAYING) { S.playErr = null; S.playing = true; }
+        if (e.data === YT.PlayerState.PAUSED) S.playing = false;
+        paintStatus();
+        if (S.screen === 'now') { paintNow(); stagePlayer(); }
+      },
+      onError: e => {
+        const info = YT_ERR[e.data] || { kind: 'preview', msg: 'The player could not start here.' };
+        const t = curTrack();
+        S.playErr = { kind: info.kind, msg: info.msg, vid: t ? t.vid : null };
+        S.playing = false;
+        paintStatus();
+        if (S.screen === 'now') paintNow();
+        stagePlayer();
+      }
+    }
+  });
+};
+
+(function loadYT() {
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = fail;
+  document.head.appendChild(s);
+  setTimeout(() => { if (!S.ready) fail(); }, 9000);
+  function fail() {
+    if (S.ready) return;
+    ytFailed = true;
+    useFallback();
+  }
+})();
+
+function playQueue(tracks, name, idx) {
+  if (!tracks.length) { osd('Nothing to play'); return; }
+  S.queue = tracks.slice();
+  S.qName = name;
+  S.qIdx = Math.max(0, Math.min(idx || 0, tracks.length - 1));
+  S.wantPlay = true;
+  loadCurrent();
+  go('now');
+}
+
+function loadCurrent() {
+  const t = curTrack();
+  if (!t) return;
+  S.playErr = null;
+  if (S.fallback) {
+    fallbackFrame(t.vid);
+  } else if (S.ready && player && player.loadVideoById) {
+    player.loadVideoById(t.vid);
+    S.playing = true;
+  }
+  paintStatus();
+  stagePlayer();
+}
+
+function toggle() {
+  if (!curTrack()) { osd('No track loaded'); return; }
+  if (S.fallback) { osd('Use the play button in the frame'); return; }
+  if (!S.ready || !player) { S.wantPlay = true; osd('Player still starting'); return; }
+  if (S.playing) { player.pauseVideo(); S.playing = false; osd('Paused'); }
+  else { player.playVideo(); S.playing = true; osd('Playing'); }
+  paintStatus();
+  if (S.screen === 'now') paintNow();
+}
+
+function skip(d) {
+  if (!S.queue.length) return;
+  S.qIdx = (S.qIdx + d + S.queue.length) % S.queue.length;
+  loadCurrent();
+  if (S.screen === 'now') paintNow(); else render();
+}
+
+function seek(d) {
+  if (S.ready && player && player.getCurrentTime) {
+    player.seekTo(Math.max(0, player.getCurrentTime() + d), true);
+  }
+}
+
+function volume(d) {
+  if (S.ready && player && player.getVolume) {
+    const v = Math.max(0, Math.min(100, Math.round(player.getVolume() + d)));
+    player.setVolume(v);
+    osd('Volume ' + v);
+  }
+}
+
+/* progress ticker */
+setInterval(() => {
+  if (S.screen !== 'now' || S.fallback || !S.ready || !player || !player.getDuration) return;
+  const d = player.getDuration() || 0, c = player.getCurrentTime() || 0;
+  const fill = $('fill'), tNow = $('t-now'), tEnd = $('t-end');
+  if (fill) fill.style.width = (d ? (c / d) * 100 : 0) + '%';
+  if (tNow) tNow.textContent = mmss(c);
+  if (tEnd) tEnd.textContent = d ? mmss(d) : '--:--';
+}, 500);
+
+/* ══════════════════════════════════════════════════════════════
+   render
+   ══════════════════════════════════════════════════════════════ */
+function paintStatus() {
+  const t = curTrack();
+  $('np-ticker').textContent = t ? t.title : 'No music playing';
+  $('glyph').textContent = t ? (S.playing ? '▶' : '❚❚') : '';
+}
+
+function render() {
+  $('screen').classList.toggle('off', !S.power);
+  $('titlebar').style.display = (S.screen === 'home' && !S.optionOpen) ? 'none' : 'flex';
+  $('titlebar').textContent = S.optionOpen ? 'Option Menu' : (
+    S.screen === 'playlist' ? (curPlaylist() ? curPlaylist().name : 'Playlist') :
+    S.screen === 'now' ? (S.qName || 'Now Playing') : (TITLES[S.screen] || 'Home'));
+  paintStatus();
+  if (!S.power) { viewport.innerHTML = ''; stagePlayer(); return; }
+  if (S.optionOpen) { stagePlayer(); return paintOptions(); }
+
+  stagePlayer();
+  switch (S.screen) {
+    case 'home': return paintHome();
+    case 'library': return paintLibrary();
+    case 'playlist': return paintPlaylist();
+    case 'now': return paintNow();
+    case 'addurl': return paintAddUrl();
+    case 'newpl': return paintNewPl();
+    case 'rename': return paintRename();
+    case 'share': return paintShare();
+    case 'import': return paintImport();
+    case 'photos': return paintPhotos();
+    case 'fm': return paintFm();
+    case 'clock': return paintClock();
+    case 'videos': return paintSimple('No videos', 'This Walkman was built for the audio side of YouTube. Cover art is as visual as it gets.');
+    case 'settings': return paintSettings();
+  }
+}
+
+const ICONS = {
+  shuffle: '<path class="ic" d="M4 8h4l10 12h4M4 20h4l3-4M18 8h4M19 5l3 3-3 3M19 17l3 3-3 3"/>',
+  fm: '<rect class="ic" x="3" y="7" width="18" height="13" rx="2"/><path class="ic" d="M7 7l9-4M7 12h4M7 16h4"/><circle class="icf" cx="16.5" cy="14" r="2.5"/>',
+  clock: '<circle class="ic" cx="12" cy="12" r="9"/><path class="ic" d="M12 6.5V12l4 2.5"/>',
+  photos: '<rect class="ic" x="3" y="5" width="18" height="14" rx="2"/><path class="ic" d="M3 16l5-5 4 4 3-3 6 5"/><circle class="icf" cx="8.5" cy="9" r="1.6"/>',
+  library: '<circle class="icf" cx="7" cy="17.5" r="3.2"/><circle class="icf" cx="17" cy="15" r="3.2"/><path class="ic" d="M10.2 17.5V6l10-2v11" stroke-width="2.2"/>',
+  videos: '<rect class="ic" x="3" y="6" width="18" height="12" rx="1.5"/><path class="ic" d="M3 10h18M3 14h18M7 6v12M17 6v12"/>',
+  settings: '<rect class="ic" x="3" y="8" width="18" height="12" rx="1.5"/><path class="ic" d="M9 8V6a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>',
+  newpl: '<path class="ic" d="M6 3h8l4 4v14H6z"/><path class="ic" d="M14 3v4h4M9 12h6M12 9v6"/>',
+  import: '<rect class="ic" x="3" y="5" width="18" height="14" rx="1.5"/><path class="ic" d="M8 12h8M13 9l3 3-3 3"/>'
+};
+
+function paintHome() {
+  const i = S.sel.home;
+  viewport.innerHTML = `<div class="home">
+    <div class="grid" id="grid">${HOME_ITEMS.map((it, n) => `
+      <div class="cell" data-i="${n}" aria-selected="${n === i}">
+        <svg viewBox="0 0 24 24">${ICONS[it.key]}</svg>
+      </div>`).join('')}</div>
+    <div class="label">${esc(HOME_ITEMS[i].label)}</div>
+  </div>`;
+  viewport.querySelectorAll('.cell').forEach(c => c.onclick = () => {
+    const n = +c.dataset.i;
+    if (S.sel.home === n) openHome(n); else { S.sel.home = n; render(); }
+  });
+}
+
+function listShell(rowsHtml, sel, count) {
+  const perView = 7, rowH = 43;
+  const top = Math.max(0, Math.min(sel - 3, Math.max(0, count - perView)));
+  return `<div class="list"><div class="rows" style="transform:translateY(${-top * rowH}px)">${rowsHtml}</div></div>`;
+}
+
+function paintLibrary() {
+  const pls = S.playlists;
+  if (!pls.length) {
+    viewport.innerHTML = `<div class="empty">
+      <div class="big">No playlists yet</div>
+      <div class="sub">Press OPTION to start one, or go Home → Get a Playlist to open a friend's code.</div>
+      <button class="lcd-btn" id="mk">Create a playlist</button></div>`;
+    $('mk').onclick = () => go('newpl');
+    return;
+  }
+  const sel = S.sel.library = Math.min(S.sel.library || 0, pls.length - 1);
+  const rows = pls.map((p, n) => `
+    <div class="row" data-i="${n}" aria-selected="${n === sel}">
+      <div class="num">${n + 1}</div>
+      <div class="txt">
+        <div class="t1">${esc(p.name)}</div>
+        <div class="t2">${p.tracks.length} track${p.tracks.length === 1 ? '' : 's'}${p.from ? ' · from ' + esc(p.from) : ''}</div>
+      </div>
+      <div class="chev">▶</div>
+    </div>`).join('');
+  viewport.innerHTML = listShell(rows, sel, pls.length);
+  viewport.querySelectorAll('.row').forEach(r => r.onclick = () => {
+    const n = +r.dataset.i;
+    if (sel === n) { S.curPl = pls[n].id; S.sel.playlist = 0; go('playlist'); }
+    else { S.sel.library = n; render(); }
+  });
+}
+
+function paintPlaylist() {
+  const p = curPlaylist();
+  if (!p) return home();
+  if (!p.tracks.length) {
+    viewport.innerHTML = `<div class="empty">
+      <div class="big">${esc(p.name)} is empty</div>
+      <div class="sub">Paste a YouTube or YouTube Music link to add the first track.</div>
+      <button class="lcd-btn" id="add">Add a track</button></div>`;
+    $('add').onclick = () => go('addurl');
+    return;
+  }
+  const sel = S.sel.playlist = Math.min(S.sel.playlist || 0, p.tracks.length - 1);
+  const cur = curTrack();
+  const rows = p.tracks.map((t, n) => `
+    <div class="row ${cur && cur.vid === t.vid && S.qName === p.name ? 'playing' : ''}" data-i="${n}" aria-selected="${n === sel}">
+      <img class="thumb" src="${thumb(t.vid)}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="txt"><div class="t1">${esc(t.title)}</div><div class="t2">${esc(t.artist || 'Unknown artist')}</div></div>
+    </div>`).join('');
+  viewport.innerHTML = listShell(rows, sel, p.tracks.length);
+  viewport.querySelectorAll('.row').forEach(r => r.onclick = () => {
+    const n = +r.dataset.i;
+    if (sel === n) playQueue(p.tracks, p.name, n);
+    else { S.sel.playlist = n; render(); }
+  });
+}
+
+function paintNow() {
+  const t = curTrack();
+  if (!t) return go('library', true);
+  viewport.innerHTML = `<div class="np-view${S.playErr ? ' compact' : ''}">
+    <img class="art" src="${thumb(t.vid)}" alt="" onerror="this.style.visibility='hidden'">
+    <div class="np-meta">
+      <div><span class="g">♪</span><span class="v np-title">${esc(t.title)}</span></div>
+      <div><span class="g">◉</span><span class="v np-sub">${esc(t.artist || 'Unknown artist')}</span></div>
+      <div><span class="g">▤</span><span class="v np-sub">${esc(S.qName)} · ${S.qIdx + 1}/${S.queue.length}</span></div>
+    </div>
+    <div class="bar">
+      ${S.playErr ? `
+        <div class="msg msg-bad" style="margin-bottom:7px">${esc(S.playErr.kind === 'preview' ? PREVIEW_MSG : S.playErr.msg)}</div>
+        <div class="np-actions">
+          <button class="lcd-btn ghost" id="np-retry">Try again</button>
+          <button class="lcd-btn ghost" id="np-skip">Next</button>
+        </div>` : S.fallback ? `
+        <div class="np-state">PRESS PLAY IN THE FRAME</div>
+        <div class="np-actions" style="margin-top:6px">
+          <button class="lcd-btn ghost" id="np-skip">Next</button>
+        </div>` : `
+        <div class="np-state">${S.playing ? '▶ PLAYING' : '❚❚ PAUSED'}</div>
+        <div class="track-line"><i id="fill"></i></div>
+        <div class="times"><span id="t-now">0:00</span><span id="t-end">--:--</span></div>`}
+    </div>
+  </div>`;
+  const sk = $('np-skip');
+  if (sk) sk.onclick = () => skip(1);
+  const rt = $('np-retry');
+  if (rt) rt.onclick = () => { S.playErr = null; loadCurrent(); paintNow(); };
+  stagePlayer();
+}
+
+function noteHtml() {
+  if (!S.note) return '';
+  return `<div class="msg ${S.note.kind === 'ok' ? 'msg-good' : 'msg-bad'}">${S.note.text}</div>`;
+}
+
+function paintAddUrl() {
+  const p = curPlaylist();
+  viewport.innerHTML = `<div class="form">
+    <div class="hint">Adding to <b>${esc(p ? p.name : '')}</b></div>
+    <label for="f-url">YouTube or YouTube Music link</label>
+    <input id="f-url" placeholder="https://music.youtube.com/watch?v=…" autocomplete="off">
+    <button class="lcd-btn" id="f-add">Add track</button>
+    ${noteHtml()}
+    <div class="hint">One track per link. Album or playlist links won't expand — add the songs you want individually.</div>
+  </div>`;
+  $('f-url').focus();
+  $('f-add').onclick = addTrack;
+  $('f-url').onkeydown = e => { if (e.key === 'Enter') addTrack(); };
+}
+
+async function addTrack() {
+  const p = curPlaylist();
+  const raw = $('f-url').value;
+  const vid = videoId(raw);
+  if (!p) return;
+  if (!vid) {
+    S.note = { kind: 'bad', text: /list=/.test(raw) ? "That's a playlist link — open a single song and copy that link instead." : "That link doesn't contain a video. Copy the address from a song page." };
+    return render();
+  }
+  if (p.tracks.some(t => t.vid === vid)) {
+    S.note = { kind: 'bad', text: 'Already in this playlist.' };
+    return render();
+  }
+  S.note = { kind: 'ok', text: 'Looking up the title…' };
+  render();
+  let title = 'Track ' + (p.tracks.length + 1), artist = 'Unknown artist';
+  try {
+    const r = await fetch('https://www.youtube.com/oembed?format=json&url=' +
+      encodeURIComponent('https://www.youtube.com/watch?v=' + vid));
+    if (r.ok) {
+      const j = await r.json();
+      if (j.title) title = j.title;
+      if (j.author_name) artist = j.author_name.replace(/ - Topic$/, '');
+    }
+  } catch (e) { /* offline or blocked — keep the placeholder */ }
+  p.tracks.push({ vid, title, artist });
+  await savePlaylists();
+  S.note = { kind: 'ok', text: 'Added. ' + p.tracks.length + ' track' + (p.tracks.length === 1 ? '' : 's') + ' in this playlist.' };
+  render();
+  osd('Added ' + title.slice(0, 26));
+  const f = $('f-url'); if (f) { f.value = ''; f.focus(); }
+}
+
+function paintNewPl() {
+  viewport.innerHTML = `<div class="form">
+    <label for="f-name">Playlist name</label>
+    <input id="f-name" placeholder="Late bus home" maxlength="40" autocomplete="off">
+    <button class="lcd-btn" id="f-make">Create playlist</button>
+    ${noteHtml()}
+    <div class="hint">Next you'll paste links. Then OPTION → Share to get a code for your friends.</div>
+  </div>`;
+  $('f-name').focus();
+  const make = async () => {
+    const name = $('f-name').value.trim();
+    if (!name) { S.note = { kind: 'bad', text: 'Give it a name first.' }; return render(); }
+    const pl = { id: uid(), name, tracks: [] };
+    S.playlists.push(pl);
+    await savePlaylists();
+    S.curPl = pl.id;
+    S.sel.playlist = 0;
+    S.stack = ['home', 'library'];
+    S.screen = 'addurl'; S.note = null; render();
+  };
+  $('f-make').onclick = make;
+  $('f-name').onkeydown = e => { if (e.key === 'Enter') make(); };
+}
+
+function paintRename() {
+  const p = curPlaylist();
+  if (!p) return back();
+  viewport.innerHTML = `<div class="form">
+    <label for="f-rn">New name</label>
+    <input id="f-rn" value="${esc(p.name)}" maxlength="40">
+    <button class="lcd-btn" id="f-save">Save name</button>
+  </div>`;
+  $('f-rn').focus(); $('f-rn').select();
+  const save = async () => {
+    const v = $('f-rn').value.trim();
+    if (v) { p.name = v; await savePlaylists(); osd('Renamed'); }
+    back();
+  };
+  $('f-save').onclick = save;
+  $('f-rn').onkeydown = e => { if (e.key === 'Enter') save(); };
+}
+
+async function doShare() {
+  const p = curPlaylist();
+  if (!p) return;
+  if (!p.tracks.length) { osd('Add a track first'); return; }
+  const code = p.code || makeCode();
+  const payload = JSON.stringify({ n: p.name, t: p.tracks.map(t => [t.vid, t.title, t.artist]) });
+  const saved = await store.set('wm:share:' + code, payload, true);
+  p.code = code;
+  await savePlaylists();
+  const base = location.href.split('#')[0];
+  S.share = {
+    code,
+    name: p.name,
+    link: base + '#p=' + code + '&d=' + b64(payload),
+    saved
+  };
+  go('share');
+}
+
+function paintShare() {
+  const s = S.share;
+  if (!s) return back();
+  viewport.innerHTML = `<div class="form">
+    <div class="hint">Anyone with this ${s.saved ? 'code' : 'link'} can load <b>${esc(s.name)}</b> onto their Walkman.</div>
+    <div class="code">${esc(s.code)}</div>
+    <button class="lcd-btn" id="c-link">Copy link</button>
+    <button class="lcd-btn ghost" id="c-code">Copy code</button>
+    ${noteHtml()}
+    <div class="hint">${s.saved
+      ? 'They open this page, then Home → <b>Get a Playlist</b> and type the code. The link carries the songs too, so it works either way.'
+      : 'On this copy the <b>link</b> is the one to send — it carries the songs inside it. Codes only work on the version running inside Claude.'}</div>
+  </div>`;
+  const copy = async (text, what) => {
+    try { await navigator.clipboard.writeText(text); S.note = { kind: 'ok', text: what + ' copied.' }; }
+    catch (e) { S.note = { kind: 'bad', text: 'Copy blocked — select it by hand.' }; }
+    render();
+  };
+  $('c-code').onclick = () => copy(s.code, 'Code');
+  $('c-link').onclick = () => copy(s.link, 'Link');
+}
+
+function paintImport() {
+  viewport.innerHTML = `<div class="form">
+    <label for="f-code">Playlist code or link</label>
+    <input id="f-code" placeholder="ABC234" autocomplete="off">
+    <button class="lcd-btn" id="f-get">Load playlist</button>
+    ${noteHtml()}
+    <div class="hint">A friend gets you a code from their OPTION → Share screen. It lands in your Music Library as a copy you can edit.</div>
+  </div>`;
+  $('f-code').focus();
+  const get = () => importCode($('f-code').value);
+  $('f-get').onclick = get;
+  $('f-code').onkeydown = e => { if (e.key === 'Enter') get(); };
+}
+
+async function importCode(raw) {
+  const s = String(raw || '').trim();
+  let payload = null, code = null;
+  const dm = s.match(/[#&]d=([A-Za-z0-9+/_-]+)/);
+  if (dm) payload = unb64(dm[1]);
+  if (!payload) {
+    const cm = s.match(/([A-Za-z0-9]{6})\s*$/) || s.match(/[#&]p=([A-Za-z0-9]{6})/);
+    code = cm ? cm[1].toUpperCase() : null;
+    if (!code) { S.note = { kind: 'bad', text: 'That code should be six letters and numbers.' }; return render(); }
+    S.note = { kind: 'ok', text: 'Looking for ' + esc(code) + '…' };
+    render();
+    payload = await store.get('wm:share:' + code, true);
+  }
+  if (!payload) {
+    S.note = { kind: 'bad', text: 'No playlist under that code. Ask your friend for the link instead.' };
+    return render();
+  }
+  let data;
+  try { data = JSON.parse(payload); } catch (e) { data = null; }
+  if (!data || !Array.isArray(data.t)) {
+    S.note = { kind: 'bad', text: "That playlist didn't load. Ask for a fresh link." };
+    return render();
+  }
+  const pl = {
+    id: uid(),
+    name: data.n || 'Shared playlist',
+    from: 'a friend',
+    tracks: data.t.map(a => ({ vid: a[0], title: a[1] || 'Track', artist: a[2] || 'Unknown artist' }))
+  };
+  S.playlists.push(pl);
+  await savePlaylists();
+  S.curPl = pl.id;
+  S.sel.playlist = 0;
+  S.stack = ['home', 'library'];
+  S.screen = 'playlist'; S.note = null;
+  render();
+  osd('Loaded ' + pl.tracks.length + ' tracks');
+}
+
+function paintPhotos() {
+  const all = [];
+  S.playlists.forEach(p => p.tracks.forEach(t => all.push({ t, p })));
+  if (!all.length) return paintSimple('No cover art', 'Cover art appears once you have tracks in a playlist.');
+  const sel = S.sel.photos = Math.min(S.sel.photos || 0, all.length - 1);
+  viewport.innerHTML = `<div style="position:absolute;inset:0;padding:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;align-content:start;overflow:hidden">
+    ${all.slice(0, 12).map((x, n) => `<img src="${thumb(x.t.vid)}" alt="" data-i="${n}"
+      style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;outline:${n === sel ? '3px solid var(--amber)' : '1px solid var(--lcd-line)'};outline-offset:-1px">`).join('')}
+  </div>`;
+  viewport.querySelectorAll('img').forEach(im => im.onclick = () => {
+    const n = +im.dataset.i;
+    if (sel === n) { const x = all[n]; playQueue(x.p.tracks, x.p.name, x.p.tracks.indexOf(x.t)); }
+    else { S.sel.photos = n; render(); }
+  });
+}
+
+function paintFm() {
+  viewport.innerHTML = `<div class="empty">
+    <div style="font-size:34px;font-weight:700;letter-spacing:.02em">${S.fm.toFixed(1)}</div>
+    <div class="sub">MHz · ◀ ▶ to tune</div>
+    <div style="width:80%;height:3px;background:var(--lcd-line);position:relative">
+      <i style="position:absolute;top:-4px;width:2px;height:11px;background:var(--amber);left:${((S.fm - 87.5) / 20) * 100}%"></i>
+    </div>
+    <div class="sub" style="margin-top:6px">${S.fm.toFixed(1) === '88.6' ? 'A song you half-remember, then static.' : 'Static.'}</div>
+  </div>`;
+}
+
+function paintClock() {
+  const d = new Date();
+  viewport.innerHTML = `<div class="empty">
+    <div style="font-size:40px;font-weight:700;letter-spacing:.01em">${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}</div>
+    <div class="sub">${d.getHours() < 12 ? 'AM' : 'PM'} · ${d.toDateString()}</div>
+  </div>`;
+}
+
+function paintSimple(big, sub) {
+  viewport.innerHTML = `<div class="empty"><div class="big">${esc(big)}</div><div class="sub">${esc(sub)}</div></div>`;
+}
+
+const SKINS = [['aurora', 'Frosted'], ['red', 'Red'], ['silver', 'Silver'], ['pink', 'Pink'], ['black', 'Black']];
+function paintSettings() {
+  const sel = S.sel.settings = Math.min(S.sel.settings || 0, SKINS.length);
+  const rows = SKINS.map((s, n) => `
+    <div class="row" data-i="${n}" aria-selected="${n === sel}">
+      <div class="txt"><div class="t1">${s[1]}</div><div class="t2">Case colour</div></div>
+      <div class="chev">${S.skin === s[0] ? '●' : '○'}</div>
+    </div>`).join('') + `
+    <div class="row" data-i="${SKINS.length}" aria-selected="${sel === SKINS.length}">
+      <div class="txt"><div class="t1">About this Walkman</div>
+      <div class="t2">${S.playlists.length} playlists · ${S.playlists.reduce((a, p) => a + p.tracks.length, 0)} tracks</div></div>
+    </div>`;
+  viewport.innerHTML = listShell(rows, sel, SKINS.length + 1);
+  viewport.querySelectorAll('.row').forEach(r => r.onclick = () => {
+    const n = +r.dataset.i;
+    if (sel === n) chooseSetting(n); else { S.sel.settings = n; render(); }
+  });
+}
+
+async function chooseSetting(n) {
+  if (n < SKINS.length) {
+    S.skin = SKINS[n][0];
+    document.body.dataset.skin = S.skin;
+    await store.set('wm:skin', S.skin);
+    osd(SKINS[n][1]);
+    render();
+  } else {
+    osd('Built for passing songs around');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   OPTION menu
+   ══════════════════════════════════════════════════════════════ */
+function optionsFor() {
+  const p = curPlaylist();
+  if (S.screen === 'library') {
+    const has = S.playlists.length > 0;
+    const items = [{ label: 'New playlist', fn: () => go('newpl') }];
+    if (has) {
+      const pl = S.playlists[S.sel.library || 0];
+      items.push(
+        { label: 'Play "' + pl.name + '"', fn: () => playQueue(pl.tracks, pl.name, 0) },
+        { label: 'Share this playlist', fn: () => { S.curPl = pl.id; doShare(); } },
+        { label: 'Rename', fn: () => { S.curPl = pl.id; go('rename'); } },
+        { label: 'Delete', fn: async () => {
+            S.playlists = S.playlists.filter(x => x.id !== pl.id);
+            await savePlaylists(); S.sel.library = 0; osd('Deleted'); render();
+          } }
+      );
+    }
+    items.push({ label: 'Get a playlist from a friend', fn: () => go('import') });
+    return items;
+  }
+  if (S.screen === 'playlist' && p) {
+    const items = [{ label: 'Add a track', fn: () => go('addurl') }];
+    if (p.tracks.length) {
+      const t = p.tracks[S.sel.playlist || 0];
+      items.push(
+        { label: 'Play from here', fn: () => playQueue(p.tracks, p.name, S.sel.playlist || 0) },
+        { label: 'Shuffle playlist', fn: () => playQueue(p.tracks.slice().sort(() => Math.random() - .5), p.name + ' (shuffle)', 0) },
+        { label: 'Share this playlist', fn: () => doShare() },
+        { label: 'Remove "' + t.title.slice(0, 18) + '"', fn: async () => {
+            p.tracks.splice(S.sel.playlist || 0, 1);
+            await savePlaylists(); S.sel.playlist = 0; osd('Removed'); render();
+          } }
+      );
+    }
+    items.push({ label: 'Rename playlist', fn: () => go('rename') });
+    return items;
+  }
+  if (S.screen === 'now') {
+    return [
+      { label: S.playing ? 'Pause' : 'Play', fn: () => toggle() },
+      { label: 'Next track', fn: () => skip(1) },
+      { label: 'Shuffle this queue', fn: () => { S.queue.sort(() => Math.random() - .5); S.qIdx = 0; loadCurrent(); render(); } },
+      { label: 'Back to playlist', fn: () => go('playlist') },
+      { label: 'Share this playlist', fn: () => doShare() }
+    ];
+  }
+  return [
+    { label: 'New playlist', fn: () => go('newpl') },
+    { label: 'Get a playlist from a friend', fn: () => go('import') },
+    { label: 'Music library', fn: () => go('library') }
+  ];
+}
+
+function paintOptions() {
+  const items = S.optionItems;
+  const sel = S.sel.option = Math.min(S.sel.option || 0, items.length - 1);
+  const rows = items.map((it, n) => `
+    <div class="row" data-i="${n}" aria-selected="${n === sel}">
+      <div class="txt"><div class="t1">${esc(it.label)}</div></div>
+    </div>`).join('');
+  viewport.innerHTML = listShell(rows, sel, items.length);
+  viewport.querySelectorAll('.row').forEach(r => r.onclick = () => {
+    const n = +r.dataset.i;
+    if (sel === n) { S.optionOpen = false; items[n].fn(); }
+    else { S.sel.option = n; render(); }
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   hardware buttons
+   ══════════════════════════════════════════════════════════════ */
+function openHome(n) {
+  const k = HOME_ITEMS[n].key;
+  if (k === 'library') return go('library');
+  if (k === 'newpl') return go('newpl');
+  if (k === 'import') return go('import');
+  if (k === 'shuffle') {
+    const all = [];
+    S.playlists.forEach(p => p.tracks.forEach(t => all.push(t)));
+    if (!all.length) { osd('Nothing to shuffle yet'); return; }
+    return playQueue(all.sort(() => Math.random() - .5), 'Shuffle All', 0);
+  }
+  go(k);
+}
+
+const LIST_SCREENS = { library: () => S.playlists.length, playlist: () => (curPlaylist() ? curPlaylist().tracks.length : 0), settings: () => SKINS.length + 1, photos: () => Math.min(12, S.playlists.reduce((a, p) => a + p.tracks.length, 0)) };
+
+function dir(d) {
+  if (!S.power) return;
+  if (S.optionOpen) {
+    const n = S.optionItems.length;
+    if (d === 'up') S.sel.option = (S.sel.option - 1 + n) % n;
+    if (d === 'down') S.sel.option = (S.sel.option + 1) % n;
+    if (d === 'left') { S.optionOpen = false; }
+    return render();
+  }
+  if (S.screen === 'home') {
+    let i = S.sel.home;
+    if (d === 'up') i = (i + 6) % 9;
+    if (d === 'down') i = (i + 3) % 9;
+    if (d === 'left') i = i % 3 === 0 ? i + 2 : i - 1;
+    if (d === 'right') i = i % 3 === 2 ? i - 2 : i + 1;
+    S.sel.home = i;
+    return render();
+  }
+  if (S.screen === 'now') {
+    if (d === 'left') return skip(-1);
+    if (d === 'right') return skip(1);
+    if (d === 'up') return volume(6);
+    if (d === 'down') return volume(-6);
+    return;
+  }
+  if (S.screen === 'fm') {
+    if (d === 'left') S.fm = Math.max(87.5, +(S.fm - 0.2).toFixed(1));
+    if (d === 'right') S.fm = Math.min(107.5, +(S.fm + 0.2).toFixed(1));
+    return render();
+  }
+  const count = LIST_SCREENS[S.screen] ? LIST_SCREENS[S.screen]() : 0;
+  if (!count) { if (d === 'left') back(); return; }
+  const key = S.screen;
+  let i = S.sel[key] || 0;
+  if (S.screen === 'photos') {
+    if (d === 'up') i = Math.max(0, i - 3);
+    if (d === 'down') i = Math.min(count - 1, i + 3);
+    if (d === 'left') i = Math.max(0, i - 1);
+    if (d === 'right') i = Math.min(count - 1, i + 1);
+  } else {
+    if (d === 'up') i = (i - 1 + count) % count;
+    if (d === 'down') i = (i + 1) % count;
+    if (d === 'left') return back();
+    if (d === 'right') { S.sel[key] = i; return ok(); }
+  }
+  S.sel[key] = i;
+  render();
+}
+
+function ok() {
+  if (!S.power) return;
+  if (S.optionOpen) { const it = S.optionItems[S.sel.option || 0]; S.optionOpen = false; return it && it.fn(); }
+  switch (S.screen) {
+    case 'home': return openHome(S.sel.home);
+    case 'library': {
+      const p = S.playlists[S.sel.library || 0];
+      if (!p) return go('newpl');
+      S.curPl = p.id; S.sel.playlist = 0; return go('playlist');
+    }
+    case 'playlist': {
+      const p = curPlaylist();
+      if (!p || !p.tracks.length) return go('addurl');
+      return playQueue(p.tracks, p.name, S.sel.playlist || 0);
+    }
+    case 'settings': return chooseSetting(S.sel.settings || 0);
+    case 'photos': { const el = viewport.querySelector('img[data-i="' + (S.sel.photos || 0) + '"]'); return el && el.click(); }
+    case 'now': return toggle();
+    default: {
+      const btn = viewport.querySelector('.lcd-btn');
+      if (btn) btn.click(); else if (curTrack()) toggle();
+    }
+  }
+}
+
+function option() {
+  if (!S.power) return;
+  if (S.optionOpen) { S.optionOpen = false; return render(); }
+  S.optionItems = optionsFor();
+  S.sel.option = 0;
+  S.optionOpen = true;
+  render();
+}
+
+/* button wiring, with hold-to-home / hold-to-power */
+function hold(el, tapFn, holdFn) {
+  let timer = null, held = false;
+  const start = e => {
+    e.preventDefault();
+    held = false;
+    el.classList.add('hit');
+    timer = setTimeout(() => { held = true; holdFn(); }, 620);
+  };
+  const end = () => {
+    clearTimeout(timer);
+    el.classList.remove('hit');
+    if (!held) tapFn();
+  };
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointerleave', () => { clearTimeout(timer); el.classList.remove('hit'); });
+}
+
+hold($('b-back'), back, home);
+hold($('b-option'), option, () => {
+  S.power = !S.power;
+  if (!S.power && S.playing && player) { player.pauseVideo(); S.playing = false; }
+  render();
+});
+$('b-ok').onclick = ok;
+document.querySelectorAll('.dbtn').forEach(b => b.onclick = () => dir(b.dataset.dir));
+
+document.addEventListener('keydown', e => {
+  const typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+  const map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+  if (map[e.key] && !typing) { e.preventDefault(); flash(e.key); dir(map[e.key]); }
+  else if (e.key === 'Enter' && !typing) { e.preventDefault(); ok(); }
+  else if (e.key === 'Escape') { e.preventDefault(); back(); }
+  else if ((e.key === 'o' || e.key === 'O') && !typing) { e.preventDefault(); option(); }
+  else if (e.key === ' ' && !typing) { e.preventDefault(); toggle(); }
+});
+function flash(k) {
+  const d = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[k];
+  const el = document.querySelector('.dbtn.' + d);
+  if (el) { el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 130); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   boot
+   ══════════════════════════════════════════════════════════════ */
+(async function boot() {
+  try {
+    const served = /^https?:$/.test(location.protocol);
+    const framed = window.self !== window.top;
+    if (!served || framed) {
+      const file = decodeURIComponent((location.pathname.split('/').pop() || 'walkman.html'));
+      const dir = decodeURIComponent(location.pathname.replace(/\/[^/]*$/, '')) || '.';
+      const note = $('serve-note');
+      $('serve-why').textContent = framed
+        ? 'This preview frame has no web address of its own, so YouTube refuses to start (Error 153). Download the file, then serve it from a folder:'
+        : 'A file:// page has no web address, so YouTube refuses to start (Error 153). Serve the folder instead:';
+      $('serve-cmd').textContent = 'cd "' + (framed ? '~/Downloads' : dir) + '" && python3 -m http.server 8000';
+      $('serve-url').textContent = 'http://localhost:8000/' + file;
+      note.hidden = false;
+      S.needsServer = true;
+      $('copy-cmd').onclick = async () => {
+        try {
+          await navigator.clipboard.writeText($('serve-cmd').textContent);
+          $('copy-cmd').textContent = 'Copied';
+          setTimeout(() => { $('copy-cmd').textContent = 'Copy command'; }, 1600);
+        } catch (e) { $('copy-cmd').textContent = 'Select it by hand'; }
+      };
+    }
+  } catch (e) {}
+  const skin = await store.get('wm:skin');
+  if (skin) { S.skin = skin; document.body.dataset.skin = skin; }
+  const saved = await store.get('wm:playlists');
+  if (saved) { try { S.playlists = JSON.parse(saved) || []; } catch (e) { S.playlists = []; } }
+
+  const hash = location.hash || '';
+  if (/[#&][pd]=/.test(hash)) {
+    render();
+    await importCode(hash);
+    return;
+  }
+
+  if (!S.playlists.length) {
+    S.playlists.push({ id: uid(), name: 'Starter tape', tracks: [] });
+    await savePlaylists();
+  }
+  render();
+})();
+</script>
